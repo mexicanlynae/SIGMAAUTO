@@ -3,7 +3,6 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
 local LocalPlayer = Players.LocalPlayer
-local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
 
 local currentEasterBunny = nil
@@ -12,7 +11,9 @@ local bunnyIndex = 1
 local distanceBehind = 5
 
 -- Wait for 5 seconds before executing the rest of the script
-task.wait(5)
+task.wait(3)
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+task.wait(1)
 
 -- Get all Easter Bunny targets
 for _, child in ipairs(workspace:GetChildren()) do
