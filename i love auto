@@ -1,3 +1,5 @@
+-- Wait for 5 seconds before executing the rest of the script
+task.wait(3)
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -9,10 +11,6 @@ local currentEasterBunny = nil
 local bunnies = {}
 local bunnyIndex = 1
 local distanceBehind = 5
-
--- Wait for 5 seconds before executing the rest of the script
-task.wait(3)
-local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 task.wait(1)
 
 -- Get all Easter Bunny targets
