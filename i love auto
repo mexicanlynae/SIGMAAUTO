@@ -50,3 +50,5 @@ local function startTargeting()
 end
 
 startTargeting()
+
+print("worked")
