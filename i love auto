@@ -1,1 +1,52 @@
-sigma sigma
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+
+local currentEasterBunny = nil
+local bunnies = {}
+local bunnyIndex = 1
+local distanceBehind = 5
+
+-- Get all Easter Bunny targets
+for _, child in ipairs(workspace:GetChildren()) do
+    if child:IsA("Model") and child.Name == "Easter bunny" and child:FindFirstChild("Humanoid") then
+        table.insert(bunnies, child)
+    end
+end
+
+-- Function to teleport behind a bunny
+local function teleportBehindBunny(bunny)
+    local hrp = bunny:FindFirstChild("HumanoidRootPart")
+    if hrp then
+        -- Calculate position behind the bunny
+        local backPos = hrp.Position - (hrp.CFrame.LookVector * distanceBehind)
+        HumanoidRootPart.CFrame = CFrame.new(backPos, hrp.Position)
+    end
+end
+
+-- Function to start targeting
+local function startTargeting()
+    while bunnyIndex <= #bunnies do
+        local bunny = bunnies[bunnyIndex]
+        local humanoid = bunny:FindFirstChild("Humanoid")
+
+        if humanoid and humanoid.Health > 0 then
+            currentEasterBunny = bunny
+            print("Targeting:", currentEasterBunny.Name)
+            teleportBehindBunny(currentEasterBunny)
+
+            humanoid.Died:Connect(function()
+                bunnyIndex += 1
+                startTargeting()
+            end)
+
+            break
+        else
+            -- Skip dead or invalid bunny
+            bunnyIndex += 1
+        end
+    end
+end
+
+startTargeting()
