@@ -1,4 +1,7 @@
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
 local LocalPlayer = Players.LocalPlayer
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
@@ -15,13 +18,17 @@ for _, child in ipairs(workspace:GetChildren()) do
     end
 end
 
--- Function to teleport behind a bunny
+-- Function to teleport behind a bunny continuously
 local function teleportBehindBunny(bunny)
     local hrp = bunny:FindFirstChild("HumanoidRootPart")
     if hrp then
-        -- Calculate position behind the bunny
-        local backPos = hrp.Position - (hrp.CFrame.LookVector * distanceBehind)
-        HumanoidRootPart.CFrame = CFrame.new(backPos, hrp.Position)
+        -- Keep teleporting behind the bunny until it dies
+        while bunny and bunny:FindFirstChild("Humanoid") and bunny.Humanoid.Health > 0 do
+            -- Calculate position behind the bunny
+            local backPos = hrp.Position - (hrp.CFrame.LookVector * distanceBehind)
+            HumanoidRootPart.CFrame = CFrame.new(backPos, hrp.Position)
+            task.wait(0.1)  -- Keep teleporting every 100 milliseconds
+        end
     end
 end
 
@@ -34,11 +41,13 @@ local function startTargeting()
         if humanoid and humanoid.Health > 0 then
             currentEasterBunny = bunny
             print("Targeting:", currentEasterBunny.Name)
-            teleportBehindBunny(currentEasterBunny)
+            -- Start teleporting behind the bunny
+            spawn(function() teleportBehindBunny(currentEasterBunny) end)
 
             humanoid.Died:Connect(function()
                 bunnyIndex += 1
                 startTargeting()
+                checkAllBunniesDead()  -- Check if all bunnies are dead after a bunny dies
             end)
 
             break
@@ -49,6 +58,51 @@ local function startTargeting()
     end
 end
 
+-- Function to check if all bunnies are dead
+local function checkAllBunniesDead()
+    local allDead = true
+    for _, bunny in ipairs(bunnies) do
+        local humanoid = bunny:FindFirstChild("Humanoid")
+        if humanoid and humanoid.Health > 0 then
+            allDead = false
+            break
+        end
+    end
+
+    -- If all bunnies are dead, kick the player
+    if allDead then
+        LocalPlayer:Kick("You have been kicked from the game.")
+    end
+end
+
+-- Simulate pressing the "5" key using VirtualInputManager
+local function pressFiveKey()
+    local virtualInputManager = game:GetService("VirtualInputManager")
+    virtualInputManager:SendKeyEvent(true, Enum.KeyCode.Five, false, game)  -- Key down for "5"
+    virtualInputManager:SendKeyEvent(false, Enum.KeyCode.Five, false, game)  -- Key up for "5"
+end
+
+-- Function to get equipped tool
+local function getEquippedTool()
+    return LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
+end
+
+-- Function to activate tool using task.wait(100)
+local function activateToolWithDelay()
+    while true do
+        local tool = getEquippedTool()
+        if tool then
+            tool:Activate()
+        end
+        task.wait(0.1)  -- Wait for 100 milliseconds before hitting again
+    end
+end
+
+-- Simulate pressing "5" before starting the targeting and teleporting
+pressFiveKey()  -- Simulate pressing the "5" key
+
+-- Start targeting the Easter Bunnies
 startTargeting()
 
-print("worked")
+-- Start hitting with the tool every 100 milliseconds
+spawn(function() activateToolWithDelay() end)
