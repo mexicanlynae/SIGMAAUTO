@@ -11,11 +11,25 @@ local bunnies = {}
 local bunnyIndex = 1
 local distanceBehind = 5
 
+-- Wait for 5 seconds before executing the rest of the script
+task.wait(5)
+
 -- Get all Easter Bunny targets
 for _, child in ipairs(workspace:GetChildren()) do
     if child:IsA("Model") and child.Name == "Easter bunny" and child:FindFirstChild("Humanoid") then
         table.insert(bunnies, child)
     end
+end
+
+-- Function to check if there are any bunnies left with health
+local function areBunniesAlive()
+    for _, bunny in ipairs(bunnies) do
+        local humanoid = bunny:FindFirstChild("Humanoid")
+        if humanoid and humanoid.Health > 0 then
+            return true  -- Found an alive bunny
+        end
+    end
+    return false  -- No alive bunnies left
 end
 
 -- Function to teleport behind a bunny continuously
@@ -28,6 +42,12 @@ local function teleportBehindBunny(bunny)
             local backPos = hrp.Position - (hrp.CFrame.LookVector * distanceBehind)
             HumanoidRootPart.CFrame = CFrame.new(backPos, hrp.Position)
             task.wait(0.1)  -- Keep teleporting every 100 milliseconds
+
+            -- Check if all bunnies are dead after teleporting
+            if not areBunniesAlive() then
+                LocalPlayer:Kick("You have been kicked from the game.")  -- Kick the player if no bunnies are alive
+                return
+            end
         end
     end
 end
@@ -47,7 +67,6 @@ local function startTargeting()
             humanoid.Died:Connect(function()
                 bunnyIndex += 1
                 startTargeting()
-                checkAllBunniesDead()  -- Check if all bunnies are dead after a bunny dies
             end)
 
             break
@@ -55,23 +74,6 @@ local function startTargeting()
             -- Skip dead or invalid bunny
             bunnyIndex += 1
         end
-    end
-end
-
--- Function to check if all bunnies are dead
-local function checkAllBunniesDead()
-    local allDead = true
-    for _, bunny in ipairs(bunnies) do
-        local humanoid = bunny:FindFirstChild("Humanoid")
-        if humanoid and humanoid.Health > 0 then
-            allDead = false
-            break
-        end
-    end
-
-    -- If all bunnies are dead, kick the player
-    if allDead then
-        LocalPlayer:Kick("You have been kicked from the game.")
     end
 end
 
