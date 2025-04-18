@@ -1,109 +1,65 @@
--- Wait for 5 seconds before executing the rest of the script
-task.wait(3)
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
-local LocalPlayer = Players.LocalPlayer
-local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+local player = Players.LocalPlayer
+local holdingMouse = false
+local holdingRightBracket = false
 
-local currentEasterBunny = nil
-local bunnies = {}
-local bunnyIndex = 1
-local distanceBehind = 5
-task.wait(1)
+-- Set your desired Clicks Per Second (CPS) here
+local CPS = 10 -- Change this to 1, 2, 20, etc.
 
--- Get all Easter Bunny targets
-for _, child in ipairs(workspace:GetChildren()) do
-    if child:IsA("Model") and child.Name == "Easter bunny" and child:FindFirstChild("Humanoid") then
-        table.insert(bunnies, child)
-    end
-end
+-- Automatically calculate the cooldown from CPS
+local activationCooldown = 1 / CPS
+local lastActivationTime = 0
 
--- Function to check if there are any bunnies left with health
-local function areBunniesAlive()
-    for _, bunny in ipairs(bunnies) do
-        local humanoid = bunny:FindFirstChild("Humanoid")
-        if humanoid and humanoid.Health > 0 then
-            return true  -- Found an alive bunny
-        end
-    end
-    return false  -- No alive bunnies left
-end
-
--- Function to teleport behind a bunny continuously
-local function teleportBehindBunny(bunny)
-    local hrp = bunny:FindFirstChild("HumanoidRootPart")
-    if hrp then
-        -- Keep teleporting behind the bunny until it dies
-        while bunny and bunny:FindFirstChild("Humanoid") and bunny.Humanoid.Health > 0 do
-            -- Calculate position behind the bunny
-            local backPos = hrp.Position - (hrp.CFrame.LookVector * distanceBehind)
-            HumanoidRootPart.CFrame = CFrame.new(backPos, hrp.Position)
-            task.wait(0.1)  -- Keep teleporting every 100 milliseconds
-
-            -- Check if all bunnies are dead after teleporting
-            if not areBunniesAlive() then
-                LocalPlayer:Kick("You have been kicked from the game.")  -- Kick the player if no bunnies are alive
-                return
+-- Function to get currently equipped tool (and conditionally allow "Blocks")
+local function getEquippedTool()
+    if player.Character then
+        local tool = player.Character:FindFirstChildOfClass("Tool")
+        if tool then
+            if tool.Name == "Blocks" then
+                if holdingRightBracket then
+                    return tool
+                else
+                    return nil
+                end
+            else
+                return tool
             end
         end
     end
+    return nil
 end
 
--- Function to start targeting
-local function startTargeting()
-    while bunnyIndex <= #bunnies do
-        local bunny = bunnies[bunnyIndex]
-        local humanoid = bunny:FindFirstChild("Humanoid")
+-- Input handlers
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        holdingMouse = true
+    elseif input.KeyCode == Enum.KeyCode.RightBracket then
+        holdingRightBracket = true
+    end
+end)
 
-        if humanoid and humanoid.Health > 0 then
-            currentEasterBunny = bunny
-            print("Targeting:", currentEasterBunny.Name)
-            -- Start teleporting behind the bunny
-            spawn(function() teleportBehindBunny(currentEasterBunny) end)
+UserInputService.InputEnded:Connect(function(input, gameProcessed)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        holdingMouse = false
+    elseif input.KeyCode == Enum.KeyCode.RightBracket then
+        holdingRightBracket = false
+    end
+end)
 
-            humanoid.Died:Connect(function()
-                bunnyIndex += 1
-                startTargeting()
-            end)
-
-            break
-        else
-            -- Skip dead or invalid bunny
-            bunnyIndex += 1
+-- Loop using RenderStepped with CPS limiter
+RunService.RenderStepped:Connect(function()
+    if holdingMouse then
+        local now = tick()
+        if now - lastActivationTime >= activationCooldown then
+            lastActivationTime = now
+            local tool = getEquippedTool()
+            if tool then
+                tool:Activate()
+            end
         end
     end
-end
-
--- Simulate pressing the "5" key using VirtualInputManager
-local function pressFiveKey()
-    local virtualInputManager = game:GetService("VirtualInputManager")
-    virtualInputManager:SendKeyEvent(true, Enum.KeyCode.Five, false, game)  -- Key down for "5"
-    virtualInputManager:SendKeyEvent(false, Enum.KeyCode.Five, false, game)  -- Key up for "5"
-end
-
--- Function to get equipped tool
-local function getEquippedTool()
-    return LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
-end
-
--- Function to activate tool using task.wait(100)
-local function activateToolWithDelay()
-    while true do
-        local tool = getEquippedTool()
-        if tool then
-            tool:Activate()
-        end
-        task.wait(0.1)  -- Wait for 100 milliseconds before hitting again
-    end
-end
-
--- Simulate pressing "5" before starting the targeting and teleporting
-pressFiveKey()  -- Simulate pressing the "5" key
-
--- Start targeting the Easter Bunnies
-startTargeting()
-
--- Start hitting with the tool every 100 milliseconds
-spawn(function() activateToolWithDelay() end)
+end)
